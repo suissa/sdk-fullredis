@@ -1,4 +1,4 @@
-# ⚡️ ioredis-fastify-sdk
+# ⚡️ sdk-ioredis-fastify
 
 **Um SDK TypeScript moderno para acessar o poder do Redis via HTTP — fluente, seguro e universal.**
 
@@ -26,7 +26,7 @@ Este SDK fornece uma camada elegante e segura sobre uma API compatível, como o 
 ## 💡 O Problema que Resolvemos
 
 Em arquiteturas modernas, o acesso direto ao Redis é bloqueado por motivos de segurança.  
-O **ioredis-fastify-sdk** resolve isso, expondo o Redis como uma **API REST segura**, acessível via HTTP.
+O **sdk-ioredis-fastify** resolve isso, expondo o Redis como uma **API REST segura**, acessível via HTTP.
 
 ### Principais Vantagens
 
@@ -40,11 +40,11 @@ O **ioredis-fastify-sdk** resolve isso, expondo o Redis como uma **API REST segu
 ## 📦 Instalação
 
 ```bash
-pnpm add ioredis-fastify-sdk
+pnpm add sdk-ioredis-fastify
 # ou
-npm install ioredis-fastify-sdk
+npm install sdk-ioredis-fastify
 # ou
-yarn add ioredis-fastify-sdk
+yarn add sdk-ioredis-fastify
 ```
 
 ---
@@ -52,7 +52,7 @@ yarn add ioredis-fastify-sdk
 ## 🚀 Começo Rápido
 
 ```ts
-import { RedisAPIClient } from 'ioredis-fastify-sdk';
+import { RedisAPIClient } from 'sdk-ioredis-fastify';
 
 // 1. Configure o cliente
 const client = new RedisAPIClient({
