@@ -29,19 +29,31 @@ export class ConversationCache {
 
   // Criar nova conversação
   async createConversation(id: string, title?: string): Promise<Conversation> {
+    const now = new Date();
     const conversation: Conversation = {
       id,
       title,
       messages: [],
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: now,
+      updatedAt: now
     };
     
     this.conversations.set(id, conversation);
     
     // Salvar no Redis se disponível
     if (this.redisClient) {
-      await this.redisClient.keys.set(`conversation:${id}`, conversation);
+      // Converter Date para string para armazenamento
+      const redisConversation = {
+        ...conversation,
+        createdAt: conversation.createdAt.toISOString(),
+        updatedAt: conversation.updatedAt.toISOString(),
+        messages: conversation.messages.map(msg => ({
+          ...msg,
+          timestamp: msg.timestamp.toISOString()
+        }))
+      };
+      
+      await this.redisClient.keys.set(`conversation:${id}`, redisConversation);
       await this.redisClient.sets.add('conversations', [id]);
     }
     
@@ -66,22 +78,39 @@ export class ConversationCache {
       throw new Error(`Conversation ${conversationId} not found`);
     }
 
+    const now = new Date();
     const message: Message = {
       id: this.generateMessageId(),
       role,
       content,
-      timestamp: new Date(),
+      timestamp: now,
       metadata
     };
 
     conversation.messages.push(message);
-    conversation.updatedAt = new Date();
+    conversation.updatedAt = now;
     this.messageIndex.set(message.id, conversationId);
 
     // Salvar no Redis se disponível
     if (this.redisClient) {
-      await this.redisClient.keys.set(`conversation:${conversationId}`, conversation);
-      await this.redisClient.keys.set(`message:${message.id}`, message);
+      // Converter Date para string para armazenamento
+      const redisConversation = {
+        ...conversation,
+        createdAt: conversation.createdAt.toISOString(),
+        updatedAt: conversation.updatedAt.toISOString(),
+        messages: conversation.messages.map(msg => ({
+          ...msg,
+          timestamp: msg.timestamp.toISOString()
+        }))
+      };
+      
+      const redisMessage = {
+        ...message,
+        timestamp: message.timestamp.toISOString()
+      };
+
+      await this.redisClient.keys.set(`conversation:${conversationId}`, redisConversation);
+      await this.redisClient.keys.set(`message:${message.id}`, redisMessage);
     }
 
     return message;
@@ -164,9 +193,14 @@ export class ConversationCache {
       for (const message of conversation.messages) {
         await this.redisClient.keys.del(`message:${message.id}`);
       }
+      
+      // Remover do cache local também
+      const deleted = this.conversations.delete(id);
+      return Promise.resolve(deleted);
     }
 
-    return this.conversations.delete(id);
+    const deleted = this.conversations.delete(id);
+    return Promise.resolve(deleted);
   }
 
   // Limpar cache
@@ -190,11 +224,11 @@ export class ConversationCache {
     const totalConversations = conversations.length;
     const totalMessages = conversations.reduce((sum, conv) => sum + conv.messages.length, 0);
 
-    return {
+    return Promise.resolve({
       totalConversations,
       totalMessages,
       averageMessagesPerConversation: totalConversations > 0 ? totalMessages / totalConversations : 0
-    };
+    });
   }
 
   // Método privado para carregar conversação do Redis

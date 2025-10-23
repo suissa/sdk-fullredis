@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "bun run src/main.ts",
+    "dev": "bun run --watch src/main.ts",
     "build": "bun build src/main.ts --outdir=dist --target=node",
     "start": "bun run dist/main.js",
     "test": "bun test",
