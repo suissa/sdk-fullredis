@@ -1,4 +1,4 @@
-import { workingSDKTest } from './working-test';
+import { aiSDKDemo } from './ai-demo';
 
 async function main() {
   console.log('🚀 Iniciando aplicação Redis API Client...');
@@ -28,11 +28,11 @@ async function main() {
 
 async function testConversationSystem() {
   try {
-    // Teste das funcionalidades que sabemos que funcionam
-    await workingSDKTest();
+    // Demonstração das funcionalidades de IA
+    await aiSDKDemo();
     
   } catch (error) {
-    console.error('\n❌ Erro no teste:', error);
+    console.error('\n❌ Erro na demonstração de IA:', error);
     console.log('\n📝 Demonstração offline - Mostrando como usar o SDK:');
     showSDKUsageExample();
   }
@@ -47,7 +47,7 @@ export { main };
 
 function showSDKUsageExample() {
   console.log(`
-🚀 Como usar o Redis API SDK:
+🚀 Como usar o Redis API SDK com IA:
 
 1️⃣ Inicializar e autenticar o cliente:
    import { RedisAPIClient } from './index';
@@ -56,7 +56,16 @@ function showSDKUsageExample() {
    const client = new RedisAPIClient(redisApiConfig);
    await client.authenticate('username', 'password');
 
-2️⃣ Operações básicas com chaves:
+2️⃣ Usar IA para descobrir funções:
+   // Descreva o que você quer fazer
+   const analysis = await client.IWant('Quero criar um set com itens');
+   
+   // A IA sugere funções e workflows
+   if (analysis.workflow) {
+     await client.run(analysis.workflow);
+   }
+
+3️⃣ Operações básicas com chaves:
    // Definir uma chave
    await client.keys.set('minha-chave', 'meu-valor');
    

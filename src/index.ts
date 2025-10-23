@@ -1,13 +1,14 @@
 import axios, { AxiosInstance } from 'axios';
+import { RedisAI, Workflow } from './ai-features';
 
 // --- TIPOS E INTERFACES ---
 
 /**
- * Configuração para o cliente da API.
+ * Configuração para o cliente da API Redis Full Gateway.
  */
 export interface RedisClientConfig {
-  baseURL: string; // Ex: 'http://localhost:3000'
-  apiVersion?: string;
+  baseURL: string; // Ex: 'http://localhost:11912'
+  apiVersion?: string; // Padrão: 'v1'
 }
 
 /**
@@ -153,6 +154,7 @@ class FlowBuilder {
 export class RedisAPIClient {
   public axiosInstance: AxiosInstance;
   private token?: string;
+  public ai: RedisAI;
 
   constructor(config: RedisClientConfig) {
     const apiVersion = config.apiVersion || 'v1';
@@ -160,6 +162,9 @@ export class RedisAPIClient {
       baseURL: `${config.baseURL}/api/${apiVersion}`,
       headers: { 'Content-Type': 'application/json' },
     });
+    
+    // Inicializar funcionalidades de IA
+    this.ai = new RedisAI(this);
   }
 
   /**
@@ -230,11 +235,10 @@ export class RedisAPIClient {
     try {
       // Health check está na raiz, não no /api/v1
       const baseUrl = this.axiosInstance.defaults.baseURL?.replace('/api/v1', '');
-      const response = await fetch(`${baseUrl}/health`);
-      const data = await response.json();
-      return data;
+      const response = await axios.get(`${baseUrl}/health`);
+      return response.data;
     } catch (error: any) {
-      console.error('❌ Erro no health check:', error.message);
+      console.error('❌ Erro no health check:', error.response?.data || error.message);
       throw error;
     }
   }
@@ -242,60 +246,17 @@ export class RedisAPIClient {
   // --- MÉTODOS PARA OPERAÇÕES INDIVIDUAIS (ONE-SHOT) ---
 
   public keys = {
-    get: async <T = any>(key: string): Promise<T | null> => {
-      try {
-        const response = await this.axiosInstance.post('/hashes/hget', {
-          key,
-          field: 'value'  // Assumindo que valores são armazenados como hash
-        });
-        return response.data.result;
-      } catch (error: any) {
-        if (error.response?.status === 404) return null;
-        throw error;
-      }
-    },
-    set: async (key: string, value: any, options?: { ex?: number }): Promise<void> => {
-      await this.axiosInstance.post('/hashes/hset', {
-        key,
-        field: 'value',
-        value: typeof value === 'string' ? value : JSON.stringify(value)
-      });
-      
-      if (options?.ex) {
-        // Implementar expiração se necessário
-        console.warn('Expiração não implementada nesta versão');
-      }
-    },
-    del: async (key: string): Promise<number> => {
-        const response = await this.axiosInstance.post('/hashes/hdel', {
-          key,
-          fields: ['value']
-        });
-        return response.data.result || 0;
-    },
-    incr: async (key: string): Promise<number> => {
-        // Para incremento, vamos usar uma abordagem diferente
-        console.warn('INCR não implementado diretamente - usando workaround');
-        return 1;
-    },
     exists: async (keys: string | string[]): Promise<number> => {
         const keyArray = Array.isArray(keys) ? keys : [keys];
         const response = await this.axiosInstance.post('/keys/exists', { keys: keyArray });
-        return response.data.existing_keys_count || 0;
+        return response.data.existing_keys_count || response.data.result || 0;
     },
     rename: async (key: string, newKey: string): Promise<void> => {
         await this.axiosInstance.post('/keys/rename', { key, newKey });
     },
-    type: async (key: string): Promise<string> => {
+    getType: async (key: string): Promise<string> => {
         const response = await this.axiosInstance.post('/keys/getType', { key });
-        return response.data.type || 'none';
-    },
-    expire: async (key: string, seconds: number): Promise<void> => {
-        console.warn('EXPIRE não implementado diretamente');
-    },
-    ttl: async (key: string): Promise<number> => {
-        console.warn('TTL não implementado diretamente');
-        return -1;
+        return response.data.result || 'none';
     }
   };
 
@@ -325,8 +286,8 @@ export class RedisAPIClient {
           value: typeof value === 'string' ? value : JSON.stringify(value)
         });
     },
-    del: async (key: string, fields: string[]): Promise<number> => {
-        const response = await this.axiosInstance.post('/hashes/hdel', { key, fields });
+    del: async (key: string, field: string): Promise<number> => {
+        const response = await this.axiosInstance.post('/hashes/hdel', { key, field });
         return response.data.result || 0;
     }
   };
@@ -355,19 +316,19 @@ export class RedisAPIClient {
   public sets = {
       add: async (key: string, members: string[]): Promise<number> => {
           const response = await this.axiosInstance.post('/sets/sadd', { key, members });
-          return response.data.added || response.data.membersAdded || 0;
+          return response.data.result || response.data.added || response.data.membersAdded || 0;
       },
       getMembers: async (key: string): Promise<string[]> => {
           const response = await this.axiosInstance.post('/sets/smembers', { key });
-          return response.data.members || [];
+          return response.data.result || response.data.members || [];
       },
       remove: async (key: string, members: string[]): Promise<number> => {
           const response = await this.axiosInstance.post('/sets/srem', { key, members });
-          return response.data.removed || response.data.membersRemoved || 0;
+          return response.data.result || response.data.removed || response.data.membersRemoved || 0;
       },
       count: async (key: string): Promise<number> => {
           const response = await this.axiosInstance.post('/sets/scard', { key });
-          return response.data.count || 0;
+          return response.data.result || response.data.count || 0;
       }
   };
 
@@ -387,8 +348,8 @@ export class RedisAPIClient {
   };
 
   public streams = {
-      add: async(key: string, fields: Record<string, any>): Promise<string> => {
-          const response = await this.axiosInstance.post('/streams/xadd', { key, fields });
+      add: async(key: string, data: Record<string, any>): Promise<string> => {
+          const response = await this.axiosInstance.post('/streams/xadd', { key, data });
           return response.data.result;
       },
       getRange: async(key: string, start = '-', end = '+', count?: number): Promise<StreamEntry[]> => {
@@ -466,5 +427,21 @@ export class RedisAPIClient {
    */
   public flow(): FlowBuilder {
     return new FlowBuilder(this);
+  }
+
+  /**
+   * IWant - IA que analisa prompt e sugere funções
+   * @param prompt Descrição do que você quer fazer
+   */
+  async IWant(prompt: string) {
+    return await this.ai.IWant(prompt);
+  }
+
+  /**
+   * Executa um workflow de funções
+   * @param workflow Workflow a ser executado
+   */
+  async run(workflow: Workflow) {
+    return await this.ai.run(workflow);
   }
 }

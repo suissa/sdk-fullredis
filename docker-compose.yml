@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # Serviço Redis
+  redis:
+    image: redis:7-alpine
+    container_name: redis-server
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD:-Ohlamanoveio666}
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-Ohlamanoveio666}
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-Ohlamanoveio666}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - redis-network
+
+  # Serviço da nossa API
+  app:
+    # Constrói a imagem a partir do Dockerfile no diretório atual
+    build: .
+    container_name: redis-full-gateway
+    ports:
+      # Mapeia a porta 11912 do host para a porta 11912 do contentor
+      - "11912:11912"
+    environment:
+      # Define as variáveis de ambiente para o contentor da API
+      # Nota: Estamos a usar o nome do serviço 'redis' como hostname
+      REDIS_URL: redis://:${REDIS_PASSWORD:-Ohlamanoveio666}@redis:6379
+      PORT: 11912
+      API_VERSION: v1
+      JWT_SECRET: ${JWT_SECRET:-ljknljkno978y83frefwsjpo}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-Ohlamanoveio666}
+      DEFAULT_USER: ${DEFAULT_USER:-suissa}
+      DEFAULT_PASSWORD: ${DEFAULT_PASSWORD:-Ohlamanoveio666}
+    # Garante que o serviço 'redis' seja iniciado antes do serviço 'app'
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - redis-network
+
+networks:
+  redis-network:
+    driver: bridge
+
+volumes:
+  redis-data:
