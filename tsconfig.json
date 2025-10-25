@@ -1,12 +1,55 @@
 {
   "compilerOptions": {
-    "target": "es6",
-    "module": "commonjs",
+    "target": "ES2020",
+    "module": "CommonJS",
+    "lib": ["ES2020", "DOM"],
     "outDir": "./dist",
     "rootDir": "./src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
     "strict": true,
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
-  }
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "allowJs": false,
+    "noEmit": false,
+    "isolatedModules": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "removeComments": false,
+    "preserveConstEnums": true,
+    "types": ["node"]
+  },
+  "include": [
+    "src/index.ts",
+    "src/ai-features.ts",
+    "src/conversation.ts",
+    "src/env.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "src/main.ts",
+    "src/*-demo.ts",
+    "src/*-test.ts",
+    "src/*-tests.ts",
+    "src/examples/**/*",
+    "src/comprehensive-tests.ts",
+    "src/debug-failed-tests.ts",
+    "src/final-comprehensive-tests.ts",
+    "src/investigate-api-behavior.ts",
+    "src/test-corrections.ts",
+    "src/test-docker-connection.ts",
+    "src/test-new-api.ts",
+    "src/test-server.ts",
+    "test-*.js",
+    "analyze-*.js",
+    "fetch-*.js"
+  ]
 }

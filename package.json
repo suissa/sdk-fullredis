@@ -1,31 +1,55 @@
 {
-  "name": "app",
+  "name": "@redis-full/sdk",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "SDK TypeScript completo para Redis Full Gateway API com funcionalidades de IA integradas",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "module": "dist/index.esm.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rmdir /s /q dist 2>nul || echo \"dist folder cleaned\"",
     "dev": "bun run --watch src/main.ts",
-    "build": "bun build src/main.ts --outdir=dist --target=node",
-    "start": "bun run dist/main.js",
     "test": "bun test",
     "test:watch": "bun test --watch",
-    "test:ui": "vitest --ui",
-    "install": "bun install",
-    "clean": "bun run rm -rf dist node_modules",
+    "prepublishOnly": "npm run clean && npm run build && npm run test",
+    "prepack": "npm run build",
     "type-check": "bun tsc --noEmit"
   },
+  "keywords": [
+    "redis",
+    "sdk",
+    "typescript",
+    "api-client",
+    "ai",
+    "workflow",
+    "cache",
+    "database",
+    "fullredis",
+    "gateway"
+  ],
+  "author": "Redis Full SDK Team",
+  "license": "MIT",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/redis-full/sdk.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
+  "homepage": "https://github.com/redis-full/sdk#readme",
   "bugs": {
-    "url": ""
+    "url": "https://github.com/redis-full/sdk/issues"
   },
-  "homepage": "",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "axios": "^1.12.2",
     "dotenv": "^16.4.5",

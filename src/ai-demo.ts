@@ -21,11 +21,11 @@ export async function aiSDKDemo() {
     console.log('=' .repeat(60));
 
     const prompts = [
-      'Quero criar um set com alguns itens',
+      // 'Quero criar um set com alguns itens',
       'Preciso trabalhar com hash para armazenar dados de usuário',
-      'Como faço para criar uma lista de tarefas?',
-      'Quero me autenticar no sistema',
-      'Preciso verificar se uma chave existe'
+      // 'Como faço para criar uma lista de tarefas?',
+      // 'Quero me autenticar no sistema',
+      // 'Preciso verificar se uma chave existe'
     ];
 
     for (const prompt of prompts) {
@@ -124,9 +124,9 @@ export async function aiSDKDemo() {
 
     const complexPrompts = [
       'Quero criar um sistema de cache para usuários com dados geográficos',
-      'Preciso implementar um sistema de ranking com pontuações',
-      'Como criar um sistema de notificações em tempo real?',
-      'Quero fazer análise de dados únicos com estimativa de cardinalidade'
+      // 'Preciso implementar um sistema de ranking com pontuações',
+      // 'Como criar um sistema de notificações em tempo real?',
+      // 'Quero fazer análise de dados únicos com estimativa de cardinalidade'
     ];
 
     for (const complexPrompt of complexPrompts) {

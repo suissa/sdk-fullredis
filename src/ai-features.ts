@@ -201,7 +201,7 @@ export class RedisAI {
     if (analysis.functions.length > 0) {
       console.log(`🔧 Funções recomendadas:`);
       analysis.functions.forEach(func => {
-        console.log(`   • ${func} - ${FUNCTION_DESCRIPTIONS[func] || 'Função do SDK'}`);
+        console.log(`   • ${func} - ${(FUNCTION_DESCRIPTIONS as any)[func] || 'Função do SDK'}`);
       });
     }
 
@@ -231,7 +231,7 @@ PROMPT DO USUÁRIO: "${userPrompt}"
 
 FUNÇÕES DISPONÍVEIS NO SDK:
 ${Object.entries(FUNCTION_DESCRIPTIONS).map(([func, desc]) => 
-  `- ${func}: ${desc} (Rota: ${FUNCTION_ROUTE_MAPPING[func]})`
+  `- ${func}: ${desc} (Rota: ${(FUNCTION_ROUTE_MAPPING as any)[func]})`
 ).join('\n')}
 
 OPENAPI SPEC: ${JSON.stringify(this.openApiSpec, null, 2)}
@@ -413,8 +413,8 @@ RESPOSTA EM JSON:
         results.push(result);
         console.log(`   ✅ Sucesso:`, result);
       } catch (error) {
-        console.log(`   ❌ Erro:`, error.message);
-        results.push({ error: error.message });
+        console.log(`   ❌ Erro:`, (error as Error).message);
+        results.push({ error: (error as Error).message });
       }
 
       console.log(''); // Linha em branco
@@ -434,14 +434,14 @@ RESPOSTA EM JSON:
     
     if (parts.length === 1) {
       // Função direta (ex: authenticate, health)
-      const func = this.client[functionName];
+      const func = (this.client as any)[functionName];
       if (typeof func === 'function') {
         return await func.apply(this.client, params);
       }
     } else if (parts.length === 2) {
       // Função aninhada (ex: sets.add, hashes.get)
       const [namespace, method] = parts;
-      const namespaceObj = this.client[namespace];
+      const namespaceObj = (this.client as any)[namespace];
       if (namespaceObj && typeof namespaceObj[method] === 'function') {
         return await namespaceObj[method].apply(namespaceObj, params);
       }
