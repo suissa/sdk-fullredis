@@ -1,5 +1,5 @@
 {
-  "name": "@redis-full/sdk",
+  "name": "sdk-fullredis",
   "version": "1.0.0",
   "description": "SDK TypeScript completo para Redis Full Gateway API com funcionalidades de IA integradas",
   "main": "dist/index.js",
