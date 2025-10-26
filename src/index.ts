@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { RedisAI, Workflow } from './ai-features';
 import { LivenessSDK } from './liveness-sdk';
+import { ChatbotSDK } from './chatbot-sdk';
 
 // --- TIPOS E INTERFACES ---
 
@@ -157,6 +158,7 @@ export class RedisAPIClient {
   private token?: string;
   public ai: RedisAI;
   public liveness: LivenessSDK;
+  public chatbot: ChatbotSDK;
 
   constructor(config: RedisClientConfig) {
     const apiVersion = config.apiVersion || 'v1';
@@ -170,6 +172,9 @@ export class RedisAPIClient {
     
     // Inicializar LivenessSDK (será configurado após autenticação)
     this.liveness = new LivenessSDK(config.baseURL, '');
+    
+    // Inicializar ChatbotSDK (será configurado após autenticação)
+    this.chatbot = new ChatbotSDK(config.baseURL, '');
   }
 
   /**
@@ -191,6 +196,9 @@ export class RedisAPIClient {
       const baseUrl = this.axiosInstance.defaults.baseURL?.replace('/api/v1', '') || '';
       this.liveness = new LivenessSDK(baseUrl, this.token || '');
       
+      // Reconfigura o ChatbotSDK com o token válido
+      this.chatbot = new ChatbotSDK(baseUrl, this.token || '');
+      
       console.log('✅ Autenticação realizada com sucesso');
     } catch (error: any) {
       console.error('❌ Erro na autenticação:', error.response?.data || error.message);
@@ -205,9 +213,10 @@ export class RedisAPIClient {
     this.token = undefined;
     delete this.axiosInstance.defaults.headers.common['Authorization'];
     
-    // Limpa o LivenessSDK
+    // Limpa o LivenessSDK e ChatbotSDK
     const baseUrl = this.axiosInstance.defaults.baseURL?.replace('/api/v1', '') || '';
     this.liveness = new LivenessSDK(baseUrl, '');
+    this.chatbot = new ChatbotSDK(baseUrl, '');
   }
 
   /**
@@ -512,5 +521,6 @@ export class RedisAPIClient {
 
 // Exportações adicionais
 export { LivenessSDK } from './liveness-sdk';
+export { ChatbotSDK } from './chatbot-sdk';
 export { RedisAI } from './ai-features';
 export type { Workflow } from './ai-features';

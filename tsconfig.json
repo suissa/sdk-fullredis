@@ -29,7 +29,8 @@
     "src/ai-features.ts",
     "src/conversation.ts",
     "src/env.ts",
-    "src/liveness-sdk.ts"
+    "src/liveness-sdk.ts",
+    "src/chatbot-sdk.ts"
   ],
   "exclude": [
     "node_modules",
