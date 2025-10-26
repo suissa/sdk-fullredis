@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { RedisAI, Workflow } from './ai-features';
+import { LivenessSDK } from './liveness-sdk';
 
 // --- TIPOS E INTERFACES ---
 
@@ -155,6 +156,7 @@ export class RedisAPIClient {
   public axiosInstance: AxiosInstance;
   private token?: string;
   public ai: RedisAI;
+  public liveness: LivenessSDK;
 
   constructor(config: RedisClientConfig) {
     const apiVersion = config.apiVersion || 'v1';
@@ -165,6 +167,9 @@ export class RedisAPIClient {
     
     // Inicializar funcionalidades de IA
     this.ai = new RedisAI(this);
+    
+    // Inicializar LivenessSDK (será configurado após autenticação)
+    this.liveness = new LivenessSDK(config.baseURL, '');
   }
 
   /**
@@ -182,6 +187,10 @@ export class RedisAPIClient {
       // Adiciona o token a todas as requisições futuras
       this.axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
       
+      // Reconfigura o LivenessSDK com o token válido
+      const baseUrl = this.axiosInstance.defaults.baseURL?.replace('/api/v1', '') || '';
+      this.liveness = new LivenessSDK(baseUrl, this.token || '');
+      
       console.log('✅ Autenticação realizada com sucesso');
     } catch (error: any) {
       console.error('❌ Erro na autenticação:', error.response?.data || error.message);
@@ -195,6 +204,10 @@ export class RedisAPIClient {
   logout(): void {
     this.token = undefined;
     delete this.axiosInstance.defaults.headers.common['Authorization'];
+    
+    // Limpa o LivenessSDK
+    const baseUrl = this.axiosInstance.defaults.baseURL?.replace('/api/v1', '') || '';
+    this.liveness = new LivenessSDK(baseUrl, '');
   }
 
   /**
@@ -496,3 +509,8 @@ export class RedisAPIClient {
     return await this.ai.run(workflow);
   }
 }
+
+// Exportações adicionais
+export { LivenessSDK } from './liveness-sdk';
+export { RedisAI } from './ai-features';
+export type { Workflow } from './ai-features';
