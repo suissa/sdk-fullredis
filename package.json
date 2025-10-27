@@ -19,7 +19,8 @@
     "test:watch": "bun test --watch",
     "prepublishOnly": "npm run clean && npm run build && npm run test",
     "prepack": "npm run build",
-    "type-check": "bun tsc --noEmit"
+    "type-check": "bun tsc --noEmit",
+    "preinstall": "node preinstall.js"
   },
   "keywords": [
     "redis",
