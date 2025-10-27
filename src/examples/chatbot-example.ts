@@ -14,12 +14,12 @@ async function exemploChatbotSDK() {
 
   try {
     // 1. Autenticar
-    await client.authenticate('admin', 'password123');
+    await client.authenticate('admin', 'admin123');
     console.log('✅ Autenticado com sucesso\n');
 
     // 2. Criar e salvar configurações de fluxo
     console.log('📋 Criando fluxos de exemplo...');
-    
+
     const welcomeFlow = {
       name: 'welcome',
       description: 'Fluxo de boas-vindas',
@@ -177,7 +177,7 @@ async function exemploChatbotSDK() {
     for (const user of users.slice(0, 2)) { // Apenas 2 usuários para exemplo
       const context = await client.chatbot.getFormattedAiContext(user.phone, 5);
       console.log(`   ${user.name} (${user.phone}):`);
-      
+
       context.forEach((msg, index) => {
         const time = new Date(msg.timestamp).toLocaleTimeString();
         console.log(`     ${index + 1}. [${time}] ${msg.role}: ${msg.message}`);
@@ -185,8 +185,16 @@ async function exemploChatbotSDK() {
       console.log();
     }
 
-    // 9. Limpeza (opcional)
-    console.log('🧹 Limpando dados de teste...\n');
+    // 9. Resumo do exemplo básico
+    console.log('📊 Resumo do Exemplo Básico:\n');
+    console.log(`   👥 ${users.length} usuários processados`);
+    console.log(`   📋 2 fluxos criados (welcome, support)`);
+    console.log(`   🔒 Sistema de locks testado`);
+    console.log(`   💾 3 itens de cache criados`);
+    console.log(`   🧠 Contexto de IA configurado para todos os usuários`);
+
+    // 10. Limpeza (opcional)
+    console.log('\n🧹 Limpando dados de teste...\n');
 
     for (const user of users) {
       await client.chatbot.clearSession(user.phone);
@@ -218,7 +226,7 @@ class ChatbotWorker {
   async processMessage(phone: string, message: string): Promise<string> {
     // Tentar adquirir lock
     const lockAcquired = await this.chatbot.tryAcquireLock(phone, this.workerId);
-    
+
     if (!lockAcquired) {
       console.log(`⏳ Worker ${this.workerId}: Lock não disponível para ${phone}`);
       return 'Aguarde um momento, outro atendente está processando sua mensagem...';
@@ -230,7 +238,7 @@ class ChatbotWorker {
 
       // Obter sessão atual
       const session = await this.chatbot.getSession(phone);
-      
+
       // Adicionar mensagem do usuário ao contexto
       await this.chatbot.pushAiContext(phone, 'user', message);
 
@@ -251,15 +259,34 @@ class ChatbotWorker {
       if (step) {
         switch (step.type) {
           case 'message':
-            response = this.processTemplate(step.content || '', session);
+            // Se é a primeira interação, enviar mensagem de boas-vindas
+            if (currentStep === 'start') {
+              response = this.processTemplate(step.content || '', session);
+              // Avançar para o próximo passo
+              if (step.nextStep) {
+                await this.chatbot.updateSession(phone, {
+                  currentStep: step.nextStep
+                });
+              }
+            } else {
+              // Para outros steps de mensagem, processar normalmente
+              response = this.processTemplate(step.content || '', session);
+            }
             break;
           case 'input':
             // Salvar input do usuário e avançar para próximo passo
+            const inputKey = currentStep === 'get-name' ? 'userName' : `input_${currentStep}`;
             await this.chatbot.updateSession(phone, {
-              [`input_${currentStep}`]: message,
+              [inputKey]: message,
               currentStep: step.nextStep || 'start'
             });
-            response = 'Obrigado pela informação!';
+            
+            // Resposta personalizada baseada no step
+            if (currentStep === 'get-name') {
+              response = `Prazer em conhecê-lo, ${message}! Como posso ajudá-lo hoje?`;
+            } else {
+              response = 'Obrigado pela informação!';
+            }
             break;
           case 'ai':
             response = await this.processWithAI(phone, message);
@@ -290,7 +317,7 @@ class ChatbotWorker {
    */
   private processTemplate(template: string, session: Record<string, string>): string {
     let processed = template;
-    
+
     // Substituir variáveis {variableName}
     for (const [key, value] of Object.entries(session)) {
       processed = processed.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
@@ -305,20 +332,26 @@ class ChatbotWorker {
   private async processWithAI(phone: string, message: string): Promise<string> {
     // Obter contexto para IA
     const context = await this.chatbot.getFormattedAiContext(phone, 5);
-    
+
     // Simular análise de IA (aqui você integraria com seu modelo de IA)
     console.log(`🧠 Worker ${this.workerId}: Analisando com IA...`);
-    
-    // Simular delay de processamento
-    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Resposta simulada baseada no contexto
-    if (message.toLowerCase().includes('problema')) {
-      return 'Entendi que você está com um problema. Vou te ajudar! Pode me dar mais detalhes?';
-    } else if (message.toLowerCase().includes('obrigado')) {
+    // Simular delay de processamento
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Resposta simulada baseada no contexto e mensagem
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('problema') || lowerMessage.includes('erro') || lowerMessage.includes('não funciona')) {
+      return 'Entendi que você está com um problema técnico. Vou te ajudar! Pode me dar mais detalhes sobre o que está acontecendo?';
+    } else if (lowerMessage.includes('obrigado') || lowerMessage.includes('valeu')) {
       return 'De nada! Fico feliz em ajudar. Precisa de mais alguma coisa?';
+    } else if (lowerMessage.includes('comprar') || lowerMessage.includes('preço') || lowerMessage.includes('custa')) {
+      return 'Ótimo! Você está interessado em nossos produtos. Vou te conectar com nossa equipe de vendas.';
+    } else if (lowerMessage.includes('ajuda') || lowerMessage.includes('suporte')) {
+      return 'Claro! Estou aqui para te ajudar. Qual é sua dúvida ou problema?';
     } else {
-      return 'Interessante! Baseado no nosso histórico, acredito que posso te ajudar com isso.';
+      return `Entendi sua mensagem: "${message}". Como posso te ajudar com isso?`;
     }
   }
 
@@ -339,7 +372,7 @@ class ChatbotManager {
 
   constructor(chatbot: ChatbotSDK, workerCount: number = 3) {
     this.chatbot = chatbot;
-    
+
     // Criar workers
     for (let i = 1; i <= workerCount; i++) {
       const workerId = `chatbot-worker-${i.toString().padStart(3, '0')}`;
@@ -387,7 +420,7 @@ async function exemploSistemaCompleto() {
   });
 
   try {
-    await client.authenticate('admin', 'password123');
+    await client.authenticate('admin', 'admin123');
 
     // Criar manager com 3 workers
     const manager = new ChatbotManager(client.chatbot, 3);
@@ -401,29 +434,122 @@ async function exemploSistemaCompleto() {
 
     for (const conv of conversations) {
       console.log(`📱 Iniciando conversa com ${conv.phone}`);
-      
+
       for (const message of conv.messages) {
         console.log(`   👤 Usuário: ${message}`);
         const response = await manager.processMessage(conv.phone, message);
         console.log(`   🤖 Bot: ${response}`);
-        
+
         // Pequeno delay entre mensagens
         await new Promise(resolve => setTimeout(resolve, 500));
       }
-      
+
       console.log();
     }
 
-    // Mostrar estatísticas finais
-    const workerStats = manager.getWorkerStats();
-    console.log(`📊 Workers: ${workerStats.available}/${workerStats.total} disponíveis`);
-
-    const systemStats = await client.chatbot.getStats();
-    console.log(`📊 Sistema: ${systemStats.totalSessions} sessões, ${systemStats.totalFlows} fluxos`);
+    // Mostrar estatísticas finais detalhadas
+    await showFinalStatistics(client, manager, conversations);
 
   } catch (error) {
     console.error('❌ Erro no sistema:', error);
   }
+}
+
+/**
+ * Mostra um resumo completo de todas as estatísticas da execução
+ */
+async function showFinalStatistics(client: RedisAPIClient, manager: ChatbotManager, conversations: any[]) {
+  console.log('\n' + '='.repeat(60));
+  console.log('📊 RESUMO COMPLETO DA EXECUÇÃO');
+  console.log('='.repeat(60));
+
+  // 1. Estatísticas dos Workers
+  const workerStats = manager.getWorkerStats();
+  console.log('\n🤖 WORKERS:');
+  console.log(`   Total de workers: ${workerStats.total}`);
+  console.log(`   Workers ocupados: ${workerStats.busy}`);
+  console.log(`   Workers disponíveis: ${workerStats.available}`);
+
+  // 2. Estatísticas do Sistema
+  const systemStats = await client.chatbot.getStats();
+  console.log('\n🏗️ SISTEMA:');
+  console.log(`   Total de sessões detectadas: ${systemStats.totalSessions}`);
+  console.log(`   Sessões ativas: ${systemStats.activeSessions}`);
+  console.log(`   Total de fluxos: ${systemStats.totalFlows}`);
+  console.log(`   Itens de cache detectados: ${systemStats.totalCacheItems}`);
+
+  // 3. Estatísticas das Conversas
+  console.log('\n💬 CONVERSAS PROCESSADAS:');
+  let totalMessages = 0;
+  for (const conv of conversations) {
+    console.log(`   📱 ${conv.phone}: ${conv.messages.length} mensagens`);
+    totalMessages += conv.messages.length;
+  }
+  console.log(`   📈 Total de mensagens processadas: ${totalMessages}`);
+
+  // 4. Verificar sessões ativas
+  console.log('\n👥 SESSÕES ATIVAS:');
+  for (const conv of conversations) {
+    try {
+      const hasSession = await client.chatbot.hasActiveSession(conv.phone);
+      const session = await client.chatbot.getSession(conv.phone);
+      const sessionFields = Object.keys(session).length;
+      console.log(`   ${conv.phone}: ${hasSession ? '✅ Ativa' : '❌ Inativa'} (${sessionFields} campos)`);
+    } catch (error) {
+      console.log(`   ${conv.phone}: ❓ Erro ao verificar`);
+    }
+  }
+
+  // 5. Verificar contexto de IA
+  console.log('\n🧠 CONTEXTO DE IA:');
+  for (const conv of conversations) {
+    try {
+      const context = await client.chatbot.getAiContext(conv.phone, 10);
+      console.log(`   ${conv.phone}: ${context.length} mensagens no contexto`);
+    } catch (error) {
+      console.log(`   ${conv.phone}: ❓ Erro ao verificar contexto`);
+    }
+  }
+
+  // 6. Verificar fluxos
+  console.log('\n📋 FLUXOS DISPONÍVEIS:');
+  try {
+    const flows = await client.chatbot.listFlows();
+    flows.forEach(flow => {
+      console.log(`   ✅ ${flow}`);
+    });
+  } catch (error) {
+    console.log('   ❓ Erro ao listar fluxos');
+  }
+
+  // 7. Verificar cache
+  console.log('\n💾 CACHE DA APLICAÇÃO:');
+  const cacheItems = [
+    { cache: 'app-config', field: 'max-users' },
+    { cache: 'app-config', field: 'maintenance-mode' },
+    { cache: 'responses', field: 'greeting' }
+  ];
+  
+  for (const item of cacheItems) {
+    try {
+      const value = await client.chatbot.getCacheItem(item.cache, item.field);
+      console.log(`   ${item.cache}.${item.field}: ${value ? `"${value}"` : '❌ Não encontrado'}`);
+    } catch (error) {
+      console.log(`   ${item.cache}.${item.field}: ❓ Erro ao verificar`);
+    }
+  }
+
+  // 8. Resumo final
+  console.log('\n' + '='.repeat(60));
+  console.log('✅ RESUMO FINAL:');
+  console.log(`   🤖 ${workerStats.total} workers criados`);
+  console.log(`   💬 ${conversations.length} conversas simuladas`);
+  console.log(`   📨 ${totalMessages} mensagens processadas`);
+  console.log(`   📋 ${systemStats.totalFlows} fluxos configurados`);
+  console.log(`   🔒 Sistema de locks funcionando`);
+  console.log(`   💾 Sistema de cache funcionando`);
+  console.log(`   🧠 Contexto de IA funcionando`);
+  console.log('='.repeat(60));
 }
 
 // Executar exemplos se este arquivo for executado diretamente

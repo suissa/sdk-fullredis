@@ -32,13 +32,13 @@ type Location = { longitude: number; latitude: number; member: string };
 type SortedSetMember = { score: number; member: string };
 type StreamEntry = { id: string; data: Record<string, string> };
 type GeoRadiusOptions = {
-    lon: number;
-    lat: number;
-    radius: number;
-    unit: 'm' | 'km' | 'ft' | 'mi';
-    withdist?: boolean;
-    withcoord?: boolean;
-    count?: number;
+  lon: number;
+  lat: number;
+  radius: number;
+  unit: 'm' | 'km' | 'ft' | 'mi';
+  withdist?: boolean;
+  withcoord?: boolean;
+  count?: number;
 };
 
 
@@ -69,8 +69,8 @@ class FlowBuilder {
   set(key: string, value: any, ex?: number) {
     const args: (string | number)[] = [key, JSON.stringify(value)];
     if (ex) {
-        // O comando SET do ioredis aceita 'EX' como argumento separado
-        return this.add('set', key, JSON.stringify(value), 'EX', ex);
+      // O comando SET do ioredis aceita 'EX' como argumento separado
+      return this.add('set', key, JSON.stringify(value), 'EX', ex);
     }
     return this.add('set', key, JSON.stringify(value));
   }
@@ -114,8 +114,8 @@ class FlowBuilder {
 
   // Streams
   xadd(key: string, fields: Record<string, string | number>) {
-      const args = Object.entries(fields).flat();
-      return this.add('xadd', key, '*', ...args);
+    const args = Object.entries(fields).flat();
+    return this.add('xadd', key, '*', ...args);
   }
 
   // Bitmaps
@@ -133,16 +133,16 @@ class FlowBuilder {
    * @param options Define se deve ser executado como um pipeline (otimizado) ou uma transação (atómica).
    */
   async execute(options: FlowExecuteOptions = { mode: 'pipeline' }) {
-    const endpoint = options.mode === 'transaction' ? '/transaction' : '/pipeline';
+    const endpoint = options.mode === 'transaction' ? '/api/v1/transaction' : '/api/v1/pipeline';
 
     try {
-        const response = await this.client.axiosInstance.post(endpoint, {
-            commands: this.commands,
-        });
-        return response.data;
+      const response = await this.client.axiosInstance.post(endpoint, {
+        commands: this.commands,
+      });
+      return response.data;
     } catch (error: any) {
-        console.error(`Erro ao executar o flow em modo '${options.mode}':`, error.response?.data || error.message);
-        throw error;
+      console.error(`Erro ao executar o flow em modo '${options.mode}':`, error.response?.data || error.message);
+      throw error;
     }
   }
 }
@@ -166,13 +166,13 @@ export class RedisAPIClient {
       baseURL: `${config.baseURL}/api/${apiVersion}`,
       headers: { 'Content-Type': 'application/json' },
     });
-    
+
     // Inicializar funcionalidades de IA
     this.ai = new RedisAI(this);
-    
+
     // Inicializar LivenessSDK (será configurado após autenticação)
     this.liveness = new LivenessSDK(config.baseURL, '');
-    
+
     // Inicializar ChatbotSDK (será configurado após autenticação)
     this.chatbot = new ChatbotSDK(config.baseURL, '');
   }
@@ -186,19 +186,20 @@ export class RedisAPIClient {
         username,
         password
       });
-      
+
       this.token = response.data.token;
-      
+
       // Adiciona o token a todas as requisições futuras
       this.axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
-      
+
       // Reconfigura o LivenessSDK com o token válido
-      const baseUrl = this.axiosInstance.defaults.baseURL?.replace('/api/v1', '') || '';
-      this.liveness = new LivenessSDK(baseUrl, this.token || '');
-      
+      // Os SDKs já adicionam /api/v1, então passamos a baseURL original
+      const originalBaseUrl = this.axiosInstance.defaults.baseURL?.replace('/api/v1', '') || '';
+      this.liveness = new LivenessSDK(originalBaseUrl, this.token || '');
+
       // Reconfigura o ChatbotSDK com o token válido
-      this.chatbot = new ChatbotSDK(baseUrl, this.token || '');
-      
+      this.chatbot = new ChatbotSDK(originalBaseUrl, this.token || '');
+
       console.log('✅ Autenticação realizada com sucesso');
     } catch (error: any) {
       console.error('❌ Erro na autenticação:', error.response?.data || error.message);
@@ -212,7 +213,7 @@ export class RedisAPIClient {
   logout(): void {
     this.token = undefined;
     delete this.axiosInstance.defaults.headers.common['Authorization'];
-    
+
     // Limpa o LivenessSDK e ChatbotSDK
     const baseUrl = this.axiosInstance.defaults.baseURL?.replace('/api/v1', '') || '';
     this.liveness = new LivenessSDK(baseUrl, '');
@@ -224,7 +225,7 @@ export class RedisAPIClient {
    */
   async register(username: string, password: string, email?: string): Promise<void> {
     try {
-      const response = await this.axiosInstance.post('/auth/register', {
+      const response = await this.axiosInstance.post('/api/v1/auth/register', {
         username,
         password,
         email
@@ -289,28 +290,28 @@ export class RedisAPIClient {
       return response.data.value || 0;
     },
     exists: async (keys: string | string[]): Promise<number> => {
-        const keyArray = Array.isArray(keys) ? keys : [keys];
-        const response = await this.axiosInstance.post('/keys/exists', { keys: keyArray });
-        return response.data.existing_keys_count || response.data.result || 0;
+      const keyArray = Array.isArray(keys) ? keys : [keys];
+      const response = await this.axiosInstance.post('/api/v1/keys/exists', { keys: keyArray });
+      return response.data.existing_keys_count || response.data.result || 0;
     },
     rename: async (key: string, newKey: string): Promise<void> => {
-        await this.axiosInstance.post(`/keys/${key}/rename`, { newKey });
+      await this.axiosInstance.post(`/keys/${key}/rename`, { newKey });
     },
     getType: async (key: string): Promise<string> => {
-        const response = await this.axiosInstance.post('/keys/getType', { key });
-        return response.data.result || 'none';
+      const response = await this.axiosInstance.post('/api/v1/keys/getType', { key });
+      return response.data.result || 'none';
     },
     type: async (key: string): Promise<string> => {
-        const response = await this.axiosInstance.get(`/keys/${key}/type`);
-        return response.data.type || 'none';
+      const response = await this.axiosInstance.get(`/keys/${key}/type`);
+      return response.data.type || 'none';
     },
     expire: async (key: string, seconds: number): Promise<number> => {
-        const response = await this.axiosInstance.post(`/keys/${key}/expire`, { seconds });
-        return response?.data?.result || 0;
+      const response = await this.axiosInstance.post(`/keys/${key}/expire`, { seconds });
+      return response?.data?.result || 0;
     },
     ttl: async (key: string): Promise<number> => {
-        const response = await this.axiosInstance.get(`/keys/${key}/ttl`);
-        return response.data.ttl_in_seconds || -1;
+      const response = await this.axiosInstance.get(`/keys/${key}/ttl`);
+      return response.data.ttl_in_seconds || -1;
     }
   };
 
@@ -318,7 +319,7 @@ export class RedisAPIClient {
     get: async (key: string, field: string): Promise<string | null> => {
       try {
         // Use the existing hget API endpoint
-        const response = await this.axiosInstance.post('/hashes/hget', { key, field });
+        const response = await this.axiosInstance.post('/api/v1/hashes/hget', { key, field });
         return response.data.result;
       } catch (error: any) {
         if (error.response?.status === 404) return null;
@@ -330,168 +331,168 @@ export class RedisAPIClient {
         // Update this to match test expectation - GET /hashes/{key}
         const response = await this.axiosInstance.get(`/hashes/${key}`);
         return response.data;
-      } catch(error: any) {
+      } catch (error: any) {
         if (error.response?.status === 404) return null;
         throw error;
       }
     },
     // This method needs to be compatible with the test expectation where the second parameter is an object of fields
     set: async (key: string, fields: any): Promise<void> => {
-        // The test expects to send an object of fields as the second parameter
-        await this.axiosInstance.post(`/hashes/${key}`, fields);
+      // The test expects to send an object of fields as the second parameter
+      await this.axiosInstance.post(`/hashes/${key}`, fields);
     },
     del: async (key: string, field: string): Promise<number> => {
-        const response = await this.axiosInstance.post('/hashes/hdel', { key, field });
-        return response.data.result || 0;
+      const response = await this.axiosInstance.post('/api/v1/hashes/hdel', { key, field });
+      return response.data.result || 0;
     }
   };
 
   public lists = {
-      getRange: async <T = any>(key: string, start: number, stop: number): Promise<T[]> => {
-          // Update to match test expectation - GET request with params
-          const response = await this.axiosInstance.get(`/lists/${key}`, { params: { start, stop } });
-          // The response contains stringified JSON values, parse them
-          return (response.data.list || []).map((item: string) => {
-              try {
-                  return JSON.parse(item);
-              } catch {
-                  return item;
-              }
-          });
-      },
-      push: async (key: string, values: any[]): Promise<number> => {
-          // Update to match test expectation - POST with direction 
-          const response = await this.axiosInstance.post(`/lists/${key}`, { values, direction: 'right' });
-          return response.data.listLength || 0;
-      },
-      pushLeft: async (key: string, values: any[]): Promise<number> => {
-          const stringValues = values.map(v => typeof v === 'string' ? v : JSON.stringify(v));
-          const response = await this.axiosInstance.post('/lists/lpush', { key, values: stringValues });
-          return response.data.result || 0;
-      },
-      pushRight: async (key: string, values: any[]): Promise<number> => {
-          const stringValues = values.map(v => typeof v === 'string' ? v : JSON.stringify(v));
-          const response = await this.axiosInstance.post('/lists/rpush', { key, values: stringValues });
-          return response.data.result || 0;
-      },
-      length: async (key: string): Promise<number> => {
-          const response = await this.axiosInstance.post('/lists/llen', { key });
-          return response.data.result || 0;
-      }
+    getRange: async <T = any>(key: string, start: number, stop: number): Promise<T[]> => {
+      // Update to match test expectation - GET request with params
+      const response = await this.axiosInstance.get(`/lists/${key}`, { params: { start, stop } });
+      // The response contains stringified JSON values, parse them
+      return (response.data.list || []).map((item: string) => {
+        try {
+          return JSON.parse(item);
+        } catch {
+          return item;
+        }
+      });
+    },
+    push: async (key: string, values: any[]): Promise<number> => {
+      // Update to match test expectation - POST with direction 
+      const response = await this.axiosInstance.post(`/lists/${key}`, { values, direction: 'right' });
+      return response.data.listLength || 0;
+    },
+    pushLeft: async (key: string, values: any[]): Promise<number> => {
+      const stringValues = values.map(v => typeof v === 'string' ? v : JSON.stringify(v));
+      const response = await this.axiosInstance.post('/api/v1/lists/lpush', { key, values: stringValues });
+      return response.data.result || 0;
+    },
+    pushRight: async (key: string, values: any[]): Promise<number> => {
+      const stringValues = values.map(v => typeof v === 'string' ? v : JSON.stringify(v));
+      const response = await this.axiosInstance.post('/api/v1/lists/rpush', { key, values: stringValues });
+      return response.data.result || 0;
+    },
+    length: async (key: string): Promise<number> => {
+      const response = await this.axiosInstance.post('/api/v1/lists/llen', { key });
+      return response.data.result || 0;
+    }
   };
 
   public sets = {
-      add: async (key: string, members: string[]): Promise<number> => {
-          // Update to match test expectation - POST to /sets/{key}
-          const response = await this.axiosInstance.post(`/sets/${key}`, { members });
-          return response.data.membersAdded || 0;
-      },
-      getMembers: async (key: string): Promise<string[]> => {
-          // Update to match test expectation - GET from /sets/{key}
-          const response = await this.axiosInstance.get(`/sets/${key}`);
-          return response.data.members || [];
-      },
-      remove: async (key: string, members: string[]): Promise<number> => {
-          // Update to match test expectation - DELETE from /sets/{key}
-          const response = await this.axiosInstance.delete(`/sets/${key}`, { data: { members } });
-          return response.data.membersRemoved || 0;
-      },
-      count: async (key: string): Promise<number> => {
-          const response = await this.axiosInstance.post('/sets/scard', { key });
-          return response.data.result || response.data.count || 0;
-      }
+    add: async (key: string, members: string[]): Promise<number> => {
+      // Update to match test expectation - POST to /sets/{key}
+      const response = await this.axiosInstance.post(`/sets/${key}`, { members });
+      return response.data.membersAdded || 0;
+    },
+    getMembers: async (key: string): Promise<string[]> => {
+      // Update to match test expectation - GET from /sets/{key}
+      const response = await this.axiosInstance.get(`/sets/${key}`);
+      return response.data.members || [];
+    },
+    remove: async (key: string, members: string[]): Promise<number> => {
+      // Update to match test expectation - DELETE from /sets/{key}
+      const response = await this.axiosInstance.delete(`/sets/${key}`, { data: { members } });
+      return response.data.membersRemoved || 0;
+    },
+    count: async (key: string): Promise<number> => {
+      const response = await this.axiosInstance.post('/api/v1/sets/scard', { key });
+      return response.data.result || response.data.count || 0;
+    }
   };
 
   public sortedSets = {
-      add: async (key: string, members: SortedSetMember[]): Promise<number> => {
-          // Update to match test expectation - POST to /sorted-sets/{key}
-          const response = await this.axiosInstance.post(`/sorted-sets/${key}`, { members });
-          return response.data.membersAdded || 0;
-      },
-      getRange: async (key: string, start: number, stop: number): Promise<SortedSetMember[]> => {
-          // Update to match test expectation - GET from /sorted-sets/{key}
-          const response = await this.axiosInstance.get(`/sorted-sets/${key}`, { params: { start, stop } });
-          return response.data.members || [];
-      },
-      remove: async (key: string, members: string[]): Promise<number> => {
-          // Update to match test expectation - DELETE from /sorted-sets/{key}
-          const response = await this.axiosInstance.delete(`/sorted-sets/${key}`, { data: { members } });
-          return response.data.membersRemoved || 0;
-      }
+    add: async (key: string, members: SortedSetMember[]): Promise<number> => {
+      // Update to match test expectation - POST to /sorted-sets/{key}
+      const response = await this.axiosInstance.post(`/sorted-sets/${key}`, { members });
+      return response.data.membersAdded || 0;
+    },
+    getRange: async (key: string, start: number, stop: number): Promise<SortedSetMember[]> => {
+      // Update to match test expectation - GET from /sorted-sets/{key}
+      const response = await this.axiosInstance.get(`/sorted-sets/${key}`, { params: { start, stop } });
+      return response.data.members || [];
+    },
+    remove: async (key: string, members: string[]): Promise<number> => {
+      // Update to match test expectation - DELETE from /sorted-sets/{key}
+      const response = await this.axiosInstance.delete(`/sorted-sets/${key}`, { data: { members } });
+      return response.data.membersRemoved || 0;
+    }
   };
 
   public streams = {
-      add: async(key: string, data: Record<string, any>): Promise<string> => {
-          const response = await this.axiosInstance.post('/streams/xadd', { key, data });
-          return response.data.result;
-      },
-      getRange: async(key: string, start = '-', end = '+', count?: number): Promise<StreamEntry[]> => {
-          const params: any = { key, start, end };
-          if (count) params.count = count;
-          const response = await this.axiosInstance.post('/streams/xrange', params);
-          return response.data.result || [];
-      }
+    add: async (key: string, data: Record<string, any>): Promise<string> => {
+      const response = await this.axiosInstance.post('/api/v1/streams/xadd', { key, data });
+      return response.data.result;
+    },
+    getRange: async (key: string, start = '-', end = '+', count?: number): Promise<StreamEntry[]> => {
+      const params: any = { key, start, end };
+      if (count) params.count = count;
+      const response = await this.axiosInstance.post('/api/v1/streams/xrange', params);
+      return response.data.result || [];
+    }
   };
 
   public geospatial = {
-      add: async (key: string, locations: Location[]): Promise<number> => {
-          const response = await this.axiosInstance.post('/geospatial/geoadd', { key, locations });
-          return response.data.result || 0;
-      },
-      radius: async (key: string, options: GeoRadiusOptions): Promise<any[]> => {
-          const response = await this.axiosInstance.post('/geospatial/georadius', { key, ...options });
-          return response.data.result || [];
-      }
+    add: async (key: string, locations: Location[]): Promise<number> => {
+      const response = await this.axiosInstance.post('/api/v1/geospatial/geoadd', { key, locations });
+      return response.data.result || 0;
+    },
+    radius: async (key: string, options: GeoRadiusOptions): Promise<any[]> => {
+      const response = await this.axiosInstance.post('/api/v1/geospatial/georadius', { key, ...options });
+      return response.data.result || [];
+    }
   };
 
   public bitmaps = {
-      setBit: async(key: string, offset: number, value: 0 | 1): Promise<number> => {
-          const response = await this.axiosInstance.post('/bitmaps/setbit', { key, offset, value });
-          return response.data.result || 0;
-      },
-      getBit: async(key: string, offset: number): Promise<number> => {
-          const response = await this.axiosInstance.post('/bitmaps/getbit', { key, offset });
-          return response.data.result || 0;
-      },
-      count: async(key: string): Promise<number> => {
-          const response = await this.axiosInstance.post('/bitmaps/bitcount', { key });
-          return response.data.result || 0;
-      }
+    setBit: async (key: string, offset: number, value: 0 | 1): Promise<number> => {
+      const response = await this.axiosInstance.post('/api/v1/bitmaps/setbit', { key, offset, value });
+      return response.data.result || 0;
+    },
+    getBit: async (key: string, offset: number): Promise<number> => {
+      const response = await this.axiosInstance.post('/api/v1/bitmaps/getbit', { key, offset });
+      return response.data.result || 0;
+    },
+    count: async (key: string): Promise<number> => {
+      const response = await this.axiosInstance.post('/api/v1/bitmaps/bitcount', { key });
+      return response.data.result || 0;
+    }
   };
 
   public hyperloglogs = {
-      add: async(key: string, elements: string[]): Promise<number> => {
-          const response = await this.axiosInstance.post('/hyperloglogs/pfadd', { key, elements });
-          return response.data.result || 0;
-      },
-      count: async(keys: string[]): Promise<number> => {
-          const response = await this.axiosInstance.post('/hyperloglogs/pfcount', { keys });
-          return response.data.result || 0;
-      }
+    add: async (key: string, elements: string[]): Promise<number> => {
+      const response = await this.axiosInstance.post('/api/v1/hyperloglogs/pfadd', { key, elements });
+      return response.data.result || 0;
+    },
+    count: async (keys: string[]): Promise<number> => {
+      const response = await this.axiosInstance.post('/api/v1/hyperloglogs/pfcount', { keys });
+      return response.data.result || 0;
+    }
   };
 
   public pubsub = {
-      publish: async(channel: string, message: any): Promise<number> => {
-          const response = await this.axiosInstance.post('/pubsub/publish', {
-              channel,
-              message: typeof message === 'string' ? message : JSON.stringify(message)
-          });
-          return response.data.result || 0;
-      }
+    publish: async (channel: string, message: any): Promise<number> => {
+      const response = await this.axiosInstance.post('/api/v1/pubsub/publish', {
+        channel,
+        message: typeof message === 'string' ? message : JSON.stringify(message)
+      });
+      return response.data.result || 0;
+    }
   };
 
   public pipelining = {
-      exec: async(commands: Command[]): Promise<any[]> => {
-          const response = await this.axiosInstance.post('/pipelining/exec', { commands });
-          return response.data.results || [];
-      }
+    exec: async (commands: Command[]): Promise<any[]> => {
+      const response = await this.axiosInstance.post('/api/v1/pipelining/exec', { commands });
+      return response.data.results || [];
+    }
   };
 
   public transactions = {
-      exec: async(commands: Command[]): Promise<any[]> => {
-          const response = await this.axiosInstance.post('/transactions/exec', { commands });
-          return response.data.results || [];
-      }
+    exec: async (commands: Command[]): Promise<any[]> => {
+      const response = await this.axiosInstance.post('/api/v1/transactions/exec', { commands });
+      return response.data.results || [];
+    }
   };
 
   /**

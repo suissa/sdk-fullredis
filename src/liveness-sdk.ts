@@ -59,7 +59,7 @@ export class LivenessSDK {
         ]
       };
 
-      await this.client.post('/sortedSets/zadd', payload);
+      await this.client.post('/api/v1/sortedSets/zadd', payload);
 
       console.log(`✅ Heartbeat enviado: ${workerId} no grupo ${group} (timestamp: ${timestamp})`);
     } catch (error) {
@@ -86,7 +86,7 @@ export class LivenessSDK {
         reverse: false
       };
 
-      const response = await this.client.post('/sortedSets/zrangebyscore', payload);
+      const response = await this.client.post('/api/v1/sortedSets/zrangebyscore', payload);
 
       // A API pode retornar diferentes formatos, vamos normalizar
       let deadWorkers: string[] = [];
@@ -125,7 +125,7 @@ export class LivenessSDK {
         members: deadWorkers
       };
 
-      await this.client.post('/sortedSets/zrem', payload);
+      await this.client.post('/api/v1/sortedSets/zrem', payload);
 
       console.log(`🧹 Limpeza concluída: ${deadWorkers.length} workers removidos do grupo ${group}`);
     } catch (error) {
@@ -147,7 +147,7 @@ export class LivenessSDK {
   }> {
     try {
       // Obter total de workers no grupo
-      const totalResponse = await this.client.post('/sortedSets/zcard', {
+      const totalResponse = await this.client.post('/api/v1/sortedSets/zcard', {
         key: `agent:health:${group}`
       });
 
@@ -155,7 +155,7 @@ export class LivenessSDK {
 
       // Obter workers ativos (últimos 60 segundos)
       const activeTimestamp = Math.floor(Date.now() / 1000) - 60;
-      const activeResponse = await this.client.post('/sortedSets/zrangebyscore', {
+      const activeResponse = await this.client.post('/api/v1/sortedSets/zrangebyscore', {
         key: `agent:health:${group}`,
         min: activeTimestamp,
         max: '+inf',
@@ -165,7 +165,7 @@ export class LivenessSDK {
       const activeWorkers = Array.isArray(activeResponse.data) ? activeResponse.data.length : 0;
 
       // Obter última atividade
-      const lastActivityResponse = await this.client.post('/sortedSets/zrange', {
+      const lastActivityResponse = await this.client.post('/api/v1/sortedSets/zrange', {
         key: `agent:health:${group}`,
         start: -1,
         stop: -1,
@@ -206,7 +206,7 @@ export class LivenessSDK {
     try {
       const minTimestamp = Math.floor(Date.now() / 1000) - maxAgeSeconds;
 
-      const response = await this.client.post('/sortedSets/zrangebyscore', {
+      const response = await this.client.post('/api/v1/sortedSets/zrangebyscore', {
         key: `agent:health:${group}`,
         min: minTimestamp,
         max: '+inf',
